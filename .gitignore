@@ -1,0 +1,7 @@
+.idea/*
+#.gitignore
+.gitignore.swp
+*.iml
+*/target/*
+*/.idea/*
+log/*
