@@ -410,7 +410,7 @@
     public class DataSourceAspect {
         protected Logger logger = LoggerFactory.getLogger(getClass());
     
-        @Pointcut("@annotation(com.example.product.annotations.DataSource)")
+        @Pointcut("@annotation(com.example.product.annotations.DataSourceAnnotation)")
         public void dsPointCut() {
     
         }
@@ -454,9 +454,9 @@
     }
 
 
-    @Bean(name = "dynamicDataSource")
+    @Bean(name = "dynamicDataSourceRouting")
     @Primary
-    public DynamicDataSource dynamicDataSource() {
+    public DynamicDataSource dynamicDataSourceRouting() {
         Map<Object, Object> targetDataSources = new HashMap<>();
         DataSource masterDataSource = masterDataSource();
         targetDataSources.put(DataSourceType.MASTER.name(), masterDataSource);
@@ -483,4 +483,74 @@
         Commodity selectOne(Integer id);
     }
 ~~~
+# 事务管理
+- 添加依赖
+~~~
+        <!--atomikos transaction management-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jta-atomikos</artifactId>
+        </dependency>
+~~~
+- DataSource, SessionFactory, SessionTemplate Bean注入
+~~~
+@Configuration
+@MapperScan(basePackages = {"com.example.product.service.mapper", "com.example.product.mapper"}, sqlSessionFactoryRef = "masterSessionFactory", sqlSessionTemplateRef = "masterSqlSessionTemplate")
+public class MasterDataSourceConfigration {
+    @Autowired
+    MasterDruidProperties masterDruidProperties;
 
+    //绑定数据源配置（主）
+//    @ConfigurationProperties(prefix = "spring.datasource.druid.master")
+    @Bean(name = "masterDataSource")
+    @Primary
+    public DataSource dataSource() throws SQLException {
+        // 设置数据库连接
+        MysqlXADataSource mysqlXADataSource = new MysqlXADataSource();
+        mysqlXADataSource.setUrl(masterDruidProperties.getUrl());
+        mysqlXADataSource.setUser(masterDruidProperties.getUsername());
+        mysqlXADataSource.setPassword(masterDruidProperties.getPassword());
+        mysqlXADataSource.setPinGlobalTxToPhysicalConnection(true);
+        // 交给事务管理器进行管理
+        AtomikosDataSourceBean atomikosDataSourceBean = new AtomikosDataSourceBean();
+        atomikosDataSourceBean.setXaDataSource(mysqlXADataSource);
+        atomikosDataSourceBean.setUniqueResourceName("masterDataSource");
+        return atomikosDataSourceBean;
+    }
+
+    @Primary
+    @Bean(name = "masterSessionFactory")
+    public SqlSessionFactory masterSessionFactory(@Qualifier("masterDataSource") DataSource dataSource)
+            throws Exception {
+        SqlSessionFactoryBean sqlSessionFactoryBean = new SqlSessionFactoryBean();
+        sqlSessionFactoryBean.setDataSource(dataSource);
+        sqlSessionFactoryBean.setMapperLocations(new PathMatchingResourcePatternResolver().getResources("classpath:mybatis/mapper/*.xml"));
+        org.apache.ibatis.session.Configuration configuration = new org.apache.ibatis.session.Configuration();
+        configuration.setMapUnderscoreToCamelCase(true);
+        sqlSessionFactoryBean.setConfiguration(configuration);
+        return sqlSessionFactoryBean.getObject();
+    }
+
+    @Primary
+    @Bean(name = "masterSqlSessionTemplate")
+    public SqlSessionTemplate masterSqlSessionTemplate(
+            @Qualifier("masterSessionFactory") SqlSessionFactory sqlSessionFactory) throws Exception {
+        return new SqlSessionTemplate(sqlSessionFactory);
+    }
+}
+~~~
+- 注解实现事务管理
+~~~
+    // 开启事务管理
+    启动类 @EnableTransactionManagement 
+
+    // 注解方法实现事务
+    @Transactional
+    public void transactionManage(Commodity commodity) {
+        int insert = commodityMapper.insert(commodity);
+
+        int a = 100/0;
+        commodityMapper.delete(3);
+//        providerMapper.delete(3);
+    }
+~~~

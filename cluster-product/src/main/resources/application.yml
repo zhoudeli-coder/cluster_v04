@@ -1,4 +1,4 @@
-debug: true
+debug: false
 server:
   port: 3002
   error:
@@ -11,9 +11,9 @@ spring:
     druid: # 下面是自定义配置DruidProperties
       master: # 主数据源
         enabled: true
-        name: primary-db
+        name: master-db
         driverClassName: com.mysql.cj.jdbc.Driver
-        url: jdbc:mysql://127.0.0.1:3306/cluster?serverTimezone=GMT%2B8
+        url: jdbc:mysql://127.0.0.1:3306/cluster?serverTimezone=GMT%2B8&useSSL=false
         username: root
         password: zxc123456
         #初始化大小
@@ -45,7 +45,7 @@ spring:
         enabled: true
         name: slave-db
         driverClassName: com.mysql.cj.jdbc.Driver
-        url: jdbc:mysql://127.0.0.1:3306/cluster_slave?serverTimezone=GMT%2B8
+        url: jdbc:mysql://127.0.0.1:3306/cluster_slave?serverTimezone=GMT%2B8&useSSL=false
         username: root
         password: zxc123456
         #初始化大小
@@ -119,6 +119,7 @@ logging:
       example:
         product:
           mapper: debug
+          service: debug
   file:
     # spring.log 输出路径
     path: log/

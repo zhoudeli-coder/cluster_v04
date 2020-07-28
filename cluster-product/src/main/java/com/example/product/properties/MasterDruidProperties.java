@@ -6,8 +6,8 @@ import org.springframework.stereotype.Component;
 
 @Data
 @Component
-@ConfigurationProperties(prefix = "spring.datasource.druid")
-public class DruidProperties {
+@ConfigurationProperties(prefix = "spring.datasource.druid.master")
+public class MasterDruidProperties {
     private String driverClassName;
     private String url;
     private String username;
@@ -27,4 +27,5 @@ public class DruidProperties {
     private Integer maxPoolPreparedStatementPerConnectionSize;
     private Boolean useGlobalDataSourceStat;
     private String connectionProperties;
+    private String name;
 }
